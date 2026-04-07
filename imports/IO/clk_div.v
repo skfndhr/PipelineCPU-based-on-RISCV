@@ -12,6 +12,6 @@ module clk_div(input clk,
 	always @ (posedge clk  or posedge rst) begin 
 		if (rst) clkdiv <= 1; else clkdiv <= clkdiv + 1'b1; end
 		
-	assign Clk_CPU=(SW2)? clkdiv[24] : clk;
+	assign Clk_CPU=(SW2)? clkdiv[24] : clkdiv[0];
 
 endmodule

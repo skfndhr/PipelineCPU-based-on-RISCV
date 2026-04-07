@@ -118,7 +118,7 @@ module TOP(
         .douta(douta)
     );
 
-    MIO_BUS U4_MIO_BUS(
+    MyBUS U4_MIO_BUS(
         .BTN(BTN_out),
         .Cpu_data2bus(Data_out),
         .PC(PC_out),
