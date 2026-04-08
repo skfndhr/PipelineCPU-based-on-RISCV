@@ -38,7 +38,7 @@ module MyBUS(
     
     output reg [31:0] Cpu_data4bus,   // 输出到CPU的数据
     output [31:0] ram_data_in,        // 写入RAM的数据
-    output [9:0] ram_addr,            // RAM地址（字寻址，10位=4KB）
+    output [31:0] ram_addr,            // RAM地址（字寻址，10位=4KB）
     output data_ram_we,               // RAM写使能
     output GPIOf0000000_we,           // GPIO F0000000 写使能（LED）
     output GPIOe0000000_we,           // GPIO E0000000 写使能（7-Segment）
@@ -62,7 +62,7 @@ module MyBUS(
     assign counter_sel = (addr_bus[31:4] == 28'h4000000); 
     
 
-    assign ram_addr = addr_bus[11:2];        // 字地址（10位，4KB范围）
+    assign ram_addr = {22'b0, addr_bus[11:2]};        // 字地址（10位，4KB范围）
     assign ram_data_in = Cpu_data2bus;       // 直通CPU数据到RAM
     assign data_ram_we = mem_w & ram_sel;    // RAM写使能
     
