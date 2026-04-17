@@ -1,7 +1,7 @@
 `timescale 1ns / 1ps
-`define IDLE 2'b0
-`define READ 2'b1
-
+`define IDLE 2'b00
+`define READ 2'b01
+`define WRITE 2'b10
 
 module Cache(
     input clk,
@@ -10,6 +10,7 @@ module Cache(
     input  [31:0] dina,
     input  [3:0]  wea,
     input  [127:0] data_from_mem,
+    output [127:0] data_to_mem,
     output mem_stall,
     output [31:0] douta,
     output hit
@@ -29,28 +30,57 @@ module Cache(
     wire hit_signals[0:7];
     wire miss=!(hit_signals[0] || hit_signals[1] || hit_signals[2] || hit_signals[3] || hit_signals[4] || hit_signals[5] || hit_signals[6] || hit_signals[7]);
     reg [1:0] status;
+    reg [1:0] counter;
     wire mem_stall_signal=(status==`READ);
     assign mem_stall=mem_stall_signal;
     wire valid_from_mem=mem_stall_signal;
     always @(posedge clk or negedge rst)
     begin
         if(!rst)
+        begin
             status<=`IDLE;
+            counter<=2'b00;
+        end
         else
+        begin
             case(status)
                 `IDLE:begin
                     if(miss)
+                    begin
                         status<=`READ;
+                        counter<=2'b01;
+                    end
                     else
+                    begin
                         status<=`IDLE;
+                    end
                 end
                 `READ:begin
-                    if(miss)
+                    if(counter==2'b01)
+                    begin
                         status<=`READ;
+                        counter<=2'b10;
+                    end
                     else
+                    begin
                         status<=`IDLE;
+                        counter<=2'b00;
+                    end
+                end
+                `WRITE:begin
+                    if(counter==2'b01)
+                    begin
+                        status<=`WRITE;
+                        counter<=2'b10;
+                    end
+                    else
+                    begin
+                        status<=`READ;
+                        counter<=2'b01;
+                    end
                 end
             endcase
+        end
     end
     
 

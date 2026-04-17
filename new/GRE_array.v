@@ -38,5 +38,8 @@ module GRE_array #(parameter WIDTH = 200)(
                 out <= in;
             end
         end
+        else begin
+            out <= out; 
+        end
     end
 endmodule

@@ -1,4 +1,7 @@
 `timescale 1ns / 1ps
+`define IDLE 2'b00
+`define READ 2'b01
+`define WRITE 2'b10
 
 
 // bit[5]: way3 > way2 
@@ -39,8 +42,11 @@ module cache_set(
     input [31:0] din,
     input [127:0] data_from_mem,
     input valid_from_mem,
+    input [1:0] status,
+    output [127:0] data_to_mem,
     output [31:0] dout,
-    output hit
+    output hit,
+    output iswrite
     );
     reg [5:0] lru;
     reg [31:0] data_out;
@@ -48,26 +54,35 @@ module cache_set(
     wire valid_from_mem2; 
     wire valid_from_mem3;
     wire valid_from_mem4;
+    reg [127:0] data2mem;
+
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
-            lru <= 6'b111111; // All lines are empty, next to replace is way0
+            lru <= 6'b111111; 
             data_out <= 32'b0;
         end     
     end
 
-    assign valid_from_mem1 = choose && valid_from_mem && lru[0] && lru[1] && lru[3]; // way0 is LRU
-    assign valid_from_mem2 = choose && valid_from_mem && (!lru[0]) && lru[2] && lru[4]; // way1 is LRU
-    assign valid_from_mem3 = choose && valid_from_mem && (!lru[1]) && (!lru[2]) && lru[5]; // way2 is LRU
-    assign valid_from_mem4 = choose && valid_from_mem && (!lru[3]) && (!lru[4]) && (!lru[5]); // way3 is LRU
+    assign valid_from_mem1 = choose && valid_from_mem && lru[0] && lru[1] && lru[3]; 
+    assign valid_from_mem2 = choose && valid_from_mem && (!lru[0]) && lru[2] && lru[4]; 
+    assign valid_from_mem3 = choose && valid_from_mem && (!lru[1]) && (!lru[2]) && lru[5]; 
+    assign valid_from_mem4 = choose && valid_from_mem && (!lru[3]) && (!lru[4]) && (!lru[5]); 
     
     wire [31:0] dout1;
     wire [31:0] dout2;
     wire [31:0] dout3;
     wire [31:0] dout4;
+    wire [127:0] data_to_mem1;
+    wire [127:0] data_to_mem2;
+    wire [127:0] data_to_mem3;
+    wire [127:0] data_to_mem4;
     wire hit1;
     wire hit2;
     wire hit3;
     wire hit4;
+    wire dirty[0:3];
+    wire valid[0:3];
+    wire [24:0] tag_out[0:3];
     cache_line cacheline1(
         .clk(clk),
         .rst(rst),
@@ -78,8 +93,12 @@ module cache_set(
         .din(din),
         .data_from_mem(data_from_mem),
         .valid_from_mem(valid_from_mem1),
+        .data_to_mem(data_to_mem1),
+        .tag_out(tag_out[0]),
         .dout(dout1),
-        .hit(hit1)
+        .hit(hit1),
+        .valid_out(valid[0]),
+        .dirty_out(dirty[0])
     );
     cache_line cacheline2(
         .clk(clk),
@@ -91,8 +110,12 @@ module cache_set(
         .din(din),
         .data_from_mem(data_from_mem),
         .valid_from_mem(valid_from_mem2),
+        .data_to_mem(data_to_mem2),
+        .tag_out(tag_out[1]),
         .dout(dout2),
-        .hit(hit2)
+        .hit(hit2),
+        .valid_out(valid[1]),
+        .dirty_out(dirty[1])
     );
     cache_line cacheline3(
         .clk(clk),
@@ -104,8 +127,12 @@ module cache_set(
         .din(din),
         .data_from_mem(data_from_mem),
         .valid_from_mem(valid_from_mem3),
+        .data_to_mem(data_to_mem3),
+        .tag_out(tag_out[2]),
         .dout(dout3),
-        .hit(hit3)
+        .hit(hit3),
+        .valid_out(valid[2]),
+        .dirty_out(dirty[2])
     );
     cache_line cacheline4(
         .clk(clk),
@@ -117,12 +144,21 @@ module cache_set(
         .din(din),
         .data_from_mem(data_from_mem),
         .valid_from_mem(valid_from_mem4),
+        .data_to_mem(data_to_mem4),
+        .tag_out(tag_out[3]),
         .dout(dout4),
-        .hit(hit4)
+        .hit(hit4),
+        .valid_out(valid[3]),
+        .dirty_out(dirty[3])
     );
     always @* begin
         data_out <= hit1 ? dout1 : (hit2 ? dout2 : (hit3 ? dout3 : (hit4 ? dout4 : 32'b0)));
+        data2mem <= hit1 ? data_to_mem1 : (hit2 ? data_to_mem2 : (hit3 ? data_to_mem3 : (hit4 ? data_to_mem4 : 128'b0)));
     end
     assign dout = data_out;
     assign hit = hit1 || hit2 || hit3 || hit4;
+    assign iswrite = valid_from_mem1? valid[0] && dirty[0] :
+                     valid_from_mem2? valid[1] && dirty[1] :
+                     valid_from_mem3? valid[2] && dirty[2] :
+                     valid_from_mem4? valid[3] && dirty[3] : 1'b0;
 endmodule

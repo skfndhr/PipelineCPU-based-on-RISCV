@@ -21,7 +21,7 @@
 
 
 module MyPipelineCPU(clk, reset, MIO_ready, inst_in, Data_in, mem_w, 
-  PC_out, Addr_out, Data_out, dm_ctrl, CPU_MIO, INT);
+  PC_out, Addr_out, Data_out, dm_ctrl, CPU_MIO, INT,mem_stall);
     input clk;
     input reset;
     input MIO_ready;
@@ -34,6 +34,11 @@ module MyPipelineCPU(clk, reset, MIO_ready, inst_in, Data_in, mem_w,
     output [2:0]dm_ctrl;
     output CPU_MIO;
     input INT;
+    input mem_stall;
+
+
+
+
 
     wire rstn=~reset;
     wire Clk_CPU=clk;
@@ -57,7 +62,7 @@ module MyPipelineCPU(clk, reset, MIO_ready, inst_in, Data_in, mem_w,
     wire [31:0] ALUresult;
     wire [31:0] PC;
     wire [31:0] NPC;
-    wire PCWr = PCWrite;
+    wire PCWr = PCWrite||mem_stall;
     wire [31:0] EX_instr;
     wire [31:0] EX_PC;
     wire [31:0] EX_PCPlus4;
@@ -137,7 +142,7 @@ module MyPipelineCPU(clk, reset, MIO_ready, inst_in, Data_in, mem_w,
     GRE_array #(.WIDTH(200)) IF_ID(
         .clk(Clk_CPU),
         .rst(rstn),
-        .en(IF_ID_Write),
+        .en(IF_ID_Write||mem_stall),
         .flush(IF_ID_Flush),
         .in(IF_ID_in),
         .out(IF_ID_out)
@@ -236,7 +241,7 @@ module MyPipelineCPU(clk, reset, MIO_ready, inst_in, Data_in, mem_w,
     GRE_array #(.WIDTH(300)) ID_EX(
         .clk(Clk_CPU),
         .rst(rstn),
-        .en(1'b1),
+        .en(mem_stall?1'b0:1'b1),
         .flush(ID_EX_Flush),
         .in(ID_EX_in),
         .out(ID_EX_out)
@@ -291,7 +296,7 @@ module MyPipelineCPU(clk, reset, MIO_ready, inst_in, Data_in, mem_w,
     GRE_array #(.WIDTH(300)) EX_MEM(
         .clk(Clk_CPU),
         .rst(rstn),
-        .en(1'b1),
+        .en(mem_stall?1'b0:1'b1),
         .flush(1'b0),
         .in(EX_MEM_in),
         .out(EX_MEM_out)
@@ -317,7 +322,7 @@ module MyPipelineCPU(clk, reset, MIO_ready, inst_in, Data_in, mem_w,
     GRE_array #(.WIDTH(350)) MEM_WB(
         .clk(Clk_CPU),
         .rst(rstn),
-        .en(1'b1),
+        .en(mem_stall?1'b0:1'b1),
         .flush(1'b0),
         .in(MEM_WB_in),
         .out(MEM_WB_out)

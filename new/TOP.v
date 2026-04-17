@@ -72,7 +72,7 @@ module TOP(
     wire [7:0] seg_an;
     wire [7:0] seg_sout;
     wire [31:0] data3;
-
+    wire mem_stall;
 
     MyPipelineCPU U1_SCPU(
         .Data_in(Data_read),
@@ -86,7 +86,8 @@ module TOP(
         .Data_out(Data_out),
         .PC_out(PC_out),
         .dm_ctrl(dm_ctrl),
-        .mem_w(mem_w)
+        .mem_w(mem_w),
+        .mem_stall(mem_stall)
     );
 
 
@@ -110,6 +111,20 @@ module TOP(
 
 
 
+    // Cache U3_Cache(
+    //     .clk(Clk_CPU),
+    //     .rst(rst),
+    //     .addra(ram_addr),
+    //     .dina(Data_write_to_dm),
+    //     .wea(wea_mem),
+    //     .data_from_mem(douta),
+    //     .mem_stall(mem_stall),
+    //     .douta(douta),
+    //     .hit()
+    // );
+
+
+
     RAM_B U3_RAMB(
         .addra(ram_addr),
         .clka(clkn),
@@ -121,7 +136,6 @@ module TOP(
     MyBUS U4_MIO_BUS(
         .BTN(BTN_out),
         .Cpu_data2bus(Data_out),
-        .PC(PC_out),
         .SW(SW_out),
         .addr_bus(Addr_out),
         .clk(clk),
